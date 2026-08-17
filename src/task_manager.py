@@ -4,11 +4,12 @@ from models import Task
 class TaskManager:
     def __init__(self):
         self.tasks: list[Task] = []
+        self.next_id = 1
 
     def add_task(self, title: str) -> None:
-        task_id = len(self.tasks) + 1
-        task = Task(task_id, title)
+        task = Task(self .next_id, title)
         self.tasks.append(task)
+        self.next_id += 1
 
         print("Task added successfully.")
 
