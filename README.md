@@ -418,6 +418,53 @@ The following operations were tested:
 - Test invalid request data
 - Test invalid path parameter
 
+### 1. Swagger UI - API Documentation
+
+Swagger UI displays all available API endpoints and allows them to be tested directly from the browser.
+
+![Swagger UI](screenshots/swagger-ui.png)
+
+### 2. Create Task - POST /tasks
+
+A new task was successfully created using the POST endpoint.
+
+![POST Create Task](screenshots/post-task.png)
+
+### 3. Get All Tasks - GET /tasks
+
+The GET endpoint successfully returned all available tasks.
+
+![GET All Tasks](screenshots/get-tasks.png)
+
+### 4. Get Task by ID - GET /tasks/{id}
+
+The API successfully returned a specific task using its ID.
+
+![GET Task by ID](screenshots/get-task-by-id.png)
+
+### 5. Update Task - PUT /tasks/{id}
+
+The existing task was successfully updated using the PUT endpoint.
+
+![PUT Update Task](screenshots/put-task.png)
+
+### 6. Delete Task - DELETE /tasks/{id}
+
+The task was successfully deleted using the DELETE endpoint.
+
+![DELETE Task](screenshots/delete-task.png)
+
+### 7. Invalid Task ID
+
+An invalid task ID was tested and the API returned a 404 Not Found response.
+
+![Invalid Task ID](screenshots/invalid-task-id.png)
+
+### 8. Request Validation
+
+Invalid request data was tested and FastAPI returned a 422 validation error.
+
+![Validation Error](screenshots/validation-error.png)
 ---
 
 ## Example Workflow
