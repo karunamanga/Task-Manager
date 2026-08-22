@@ -1,4 +1,4 @@
-from models import Task
+from src.models import Task
 
 
 class TaskManager:
@@ -6,36 +6,40 @@ class TaskManager:
         self.tasks: list[Task] = []
         self.next_id = 1
 
-    def add_task(self, title: str) -> None:
-        task = Task(self .next_id, title)
+    def add_task(self, title: str) -> Task:
+        task = Task(self.next_id, title)
         self.tasks.append(task)
         self.next_id += 1
 
-        print("Task added successfully.")
+        return task
 
-    def list_tasks(self) -> None:
-        if not self.tasks:
-            print("No tasks available.")
-            return
+    def list_tasks(self) -> list[Task]:
+        return self.tasks
 
-        print("\nTasks:")
-        for task in self.tasks:
-            task.display()
-
-    def complete_task(self, task_id: int) -> None:
+    def get_task(self, task_id: int) -> Task | None:
         for task in self.tasks:
             if task.task_id == task_id:
-                task.mark_completed()
-                print("Task marked as completed.")
-                return
+                return task
 
-        print("Task not found.")
+        return None
 
-    def delete_task(self, task_id: int) -> None:
-        for task in self.tasks:
-            if task.task_id == task_id:
-                self.tasks.remove(task)
-                print("Task deleted successfully.")
-                return
+    def update_task(self, task_id: int, title: str, completed: bool) -> Task | None:
 
-        print("Task not found.")
+        task = self.get_task(task_id)
+
+        if task is None:
+            return None
+
+        task.title = title
+        task.completed = completed
+
+        return task
+
+    def delete_task(self, task_id: int) -> bool:
+        task = self.get_task(task_id)
+
+        if task is None:
+            return False
+
+        self.tasks.remove(task)
+        return True
