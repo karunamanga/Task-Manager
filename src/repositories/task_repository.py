@@ -1,11 +1,11 @@
 from sqlalchemy.orm import Session
 
-from .models import Task
+from ..models.task import Task
 
 
-class TaskManager:
+class TaskRepository:
 
-    def add_task(
+    def create_task(
         self,
         db: Session,
         title: str,
@@ -23,7 +23,7 @@ class TaskManager:
 
         return task
 
-    def list_tasks(self, db: Session) -> list[Task]:
+    def get_tasks(self, db: Session) -> list[Task]:
         return db.query(Task).all()
 
     def get_task(
