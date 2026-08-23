@@ -4,7 +4,7 @@ A REST API version of the Task Manager application built using Python and FastAP
 
 The application allows users to create, view, update, and delete tasks through HTTP API endpoints.
 
-Tasks are currently stored in memory using a Python list. The data will be lost when the application is restarted.
+Tasks are stored persistently in a local PostgreSQL database. Unlike the previous in-memory version, task data is not lost when the FastAPI application is restarted.
 
 ---
 
@@ -15,13 +15,15 @@ Tasks are currently stored in memory using a Python list. The data will be lost 
 - View a task by ID
 - Update an existing task
 - Delete a task
+- PostgreSQL persistent database storage
+- SQLAlchemy ORM for database operations
 - Request validation using Pydantic
 - JSON request and response data
 - Appropriate HTTP status codes
 - Exception handling for invalid task IDs
 - Automatic API documentation using Swagger UI
 - Automatic API documentation using ReDoc
-- In-memory task storage
+- Data persistence after application restart
 
 ---
 
@@ -34,18 +36,34 @@ Task Manager/
 │   ├── main.py
 │   ├── models.py
 │   ├── task_manager.py
-│   └── schemas.py
+│   ├── schemas.py
+│   └── database.py
 │
-├── README.md
+├── screenshots/
+│   ├── swagger-ui.png
+│   ├── post-task.png
+│   ├── get-tasks.png
+│   ├── get-task-by-id.png
+│   ├── put-task.png
+│   ├── delete-task.png
+│   ├── invalid-task-id.png
+│   ├── validation-error.png
+│   ├── database-table.png
+│   └── persistence-test.png
+│
+├── .env
 ├── .gitignore
+├── README.md
 └── requirements.txt
 
 ### File Description
 
 - main.py - FastAPI application and API endpoints
-- models.py - Defines the Task class and task properties
-- task_manager.py - Contains task management and business logic
+- database.py - PostgreSQL database connection and SQLAlchemy session configuration
+- models.py - SQLAlchemy model representing the database table
+- task_manager.py - Contains task CRUD operations and database business logic
 - schemas.py - Contains Pydantic models for request validation and response structure
+- .env - Stores the PostgreSQL database connection string
 - requirements.txt - Contains Python project dependencies
 - README.md - Project documentation
 - .gitignore - Specifies files and folders that should not be tracked by Git
@@ -56,10 +74,101 @@ Task Manager/
 
 - Python 3.12 or later
 - Git
+- PostgreSQL
 - FastAPI
 - Uvicorn
 - Pydantic
+- SQLAlchemy
+- Psycopg
+- python-dotenv
 - GitHub account for repository hosting
+
+---
+
+## PostgreSQL Database Setup
+
+The application uses PostgreSQL for persistent task storage.
+
+### Database Configuration
+
+The local PostgreSQL configuration used by the application is:
+
+Host: localhost
+Port: 5433
+Database: task_manager
+Username: postgres
+
+The PostgreSQL password is stored locally in the `.env` file and is not included in the repository.
+
+---
+
+## Create the Database
+
+Open PostgreSQL SQL Shell (psql) and connect using the PostgreSQL server details.
+
+Create the database if it does not already exist:
+
+CREATE DATABASE task_manager;
+
+Connect to the database:
+
+\c task_manager
+
+---
+
+## Database Schema
+
+The application uses a `tasks` table.
+
+Create the table using:
+
+CREATE TABLE tasks (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    completed BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+### Tasks Table
+
+| Column | Type | Description |
+|---|---|---|
+| id | SERIAL / Integer | Primary key and automatically generated task ID |
+| title | VARCHAR(255) | Task title |
+| completed | BOOLEAN | Indicates whether the task is completed |
+
+To verify the table:
+
+\dt
+
+To view the table structure:
+
+\d tasks
+
+To view stored tasks:
+
+SELECT * FROM tasks;
+
+---
+
+## Environment Variables
+
+Create a `.env` file in the project root directory.
+
+Example:
+
+DATABASE_URL=postgresql+psycopg://postgres:YOUR_PASSWORD@localhost:5433/task_manager
+
+Replace `YOUR_PASSWORD` with the password configured for the local PostgreSQL `postgres` user.
+
+### Important
+
+Do not commit the `.env` file to Git because it contains database credentials.
+
+The `.gitignore` file should contain:
+
+.env
+.venv/
+__pycache__/
 
 ---
 
@@ -91,7 +200,15 @@ python -m venv .venv
 
 pip install -r requirements.txt
 
-### 6. Run the FastAPI application
+### 6. Configure PostgreSQL
+
+Make sure the local PostgreSQL server is running.
+
+Create the `task_manager` database and `tasks` table as described in the PostgreSQL Database Setup section.
+
+Create the `.env` file and configure the `DATABASE_URL`.
+
+### 7. Run the FastAPI application
 
 From the project root directory, run:
 
@@ -121,6 +238,8 @@ ReDoc documentation is available at:
 
 http://127.0.0.1:8000/redoc
 
+ReDoc provides an alternative documentation interface for the API.
+
 ---
 
 ## API Endpoints
@@ -141,7 +260,7 @@ http://127.0.0.1:8000/redoc
 
 GET /tasks
 
-Returns all tasks currently stored in memory.
+Returns all tasks stored in the PostgreSQL database.
 
 Example response:
 
@@ -153,10 +272,14 @@ Example response:
     },
     {
         "id": 2,
-        "title": "Learn REST API",
+        "title": "Learn PostgreSQL",
         "completed": true
     }
 ]
+
+Successful request returns:
+
+200 OK
 
 ---
 
@@ -178,7 +301,11 @@ Response:
     "completed": false
 }
 
-If the task does not exist, the API returns:
+Successful request returns:
+
+200 OK
+
+If the task does not exist:
 
 404 Not Found
 
@@ -194,7 +321,7 @@ Example response:
 
 POST /tasks
 
-Creates a new task.
+Creates a new task and stores it in the PostgreSQL database.
 
 Request body:
 
@@ -215,13 +342,15 @@ Successful task creation returns:
 
 201 Created
 
+The task ID is automatically generated by PostgreSQL.
+
 ---
 
 ### 4. Update a Task
 
 PUT /tasks/{id}
 
-Updates an existing task.
+Updates an existing task in the PostgreSQL database.
 
 Example:
 
@@ -242,6 +371,10 @@ Response:
     "completed": true
 }
 
+Successful update returns:
+
+200 OK
+
 If the task does not exist:
 
 404 Not Found
@@ -252,7 +385,7 @@ If the task does not exist:
 
 DELETE /tasks/{id}
 
-Deletes a task using its ID.
+Deletes a task from the PostgreSQL database.
 
 Example:
 
@@ -272,16 +405,16 @@ If the task does not exist:
 
 The API uses Pydantic models to validate incoming JSON request data.
 
-For example, the task title must contain at least one character.
+The task title must contain at least one character and can contain a maximum of 100 characters.
 
-Valid request:
+### Valid Request
 
 {
     "title": "Learn FastAPI",
     "completed": false
 }
 
-Invalid request:
+### Invalid Request
 
 {
     "title": "",
@@ -328,17 +461,25 @@ There is a difference between an invalid ID type and a non-existing task.
 For an invalid ID type:
 
 /tasks/abc
+
     ↓
+
 Invalid integer
+
     ↓
+
 422 Validation Error
 
 For a non-existing task:
 
 /tasks/999
+
     ↓
+
 Valid integer but task does not exist
+
     ↓
+
 404 Not Found
 
 ---
@@ -359,11 +500,11 @@ Valid integer but task does not exist
 
 The API uses FastAPI's HTTPException to handle errors.
 
-For example, when a requested task ID does not exist:
+For example:
 
 GET /tasks/999
 
-The API returns:
+If task 999 does not exist, the API returns:
 
 404 Not Found
 
@@ -377,25 +518,173 @@ This prevents the application from returning incorrect data when an invalid task
 
 ---
 
-## Data Storage
+## Database Storage
 
-The application currently uses in-memory storage.
+The application uses PostgreSQL for persistent data storage.
 
-Tasks are stored in a Python list while the application is running.
+Tasks are no longer stored in a Python list.
+
+The data flow is:
 
 Application starts
+
         ↓
-Tasks stored in memory
+
+FastAPI connects to PostgreSQL
+
         ↓
+
 Create / Read / Update / Delete
+
         ↓
+
+Tasks stored in PostgreSQL
+
+        ↓
+
 Application stops
+
         ↓
-Data is lost
 
-The application does not use a database yet.
+Data remains in PostgreSQL
 
-Persistent database storage will be added in the next stage of the project.
+        ↓
+
+Application restarts
+
+        ↓
+
+Existing tasks are still available
+
+Unlike the previous in-memory implementation, restarting the FastAPI application does not remove stored tasks.
+
+---
+
+## Database Architecture
+
+The application uses SQLAlchemy as the ORM for interacting with PostgreSQL.
+
+FastAPI
+
+   ↓
+
+Pydantic Validation
+
+   ↓
+
+Database Session
+
+   ↓
+
+Task Manager
+
+   ↓
+
+SQLAlchemy Model
+
+   ↓
+
+Psycopg Driver
+
+   ↓
+
+PostgreSQL
+
+   ↓
+
+task_manager Database
+
+   ↓
+
+tasks Table
+
+### Components
+
+FastAPI
+
+Handles HTTP requests and API routes.
+
+Pydantic
+
+Validates request and response data.
+
+TaskManager
+
+Contains the CRUD business logic.
+
+SQLAlchemy
+
+Maps the Python Task model to the PostgreSQL tasks table and performs database operations.
+
+Psycopg
+
+Provides the PostgreSQL database driver used by SQLAlchemy.
+
+PostgreSQL
+
+Permanently stores the task data.
+
+---
+
+## Example Workflow
+
+Client
+
+   |
+
+   | HTTP Request
+
+   ↓
+
+FastAPI Application
+
+   |
+
+   ↓
+
+Pydantic Validation
+
+   |
+
+   ↓
+
+Database Session
+
+   |
+
+   ↓
+
+Task Manager
+
+   |
+
+   ↓
+
+SQLAlchemy
+
+   |
+
+   ↓
+
+PostgreSQL
+
+   |
+
+   ↓
+
+tasks Table
+
+   |
+
+   ↓
+
+JSON Response
+
+   |
+
+   ↓
+
+Client
 
 ---
 
@@ -417,6 +706,8 @@ The following operations were tested:
 - Test invalid task ID
 - Test invalid request data
 - Test invalid path parameter
+- Verify tasks are stored in PostgreSQL
+- Restart the FastAPI application and verify that existing tasks remain
 
 ### 1. Swagger UI - API Documentation
 
@@ -426,13 +717,13 @@ Swagger UI displays all available API endpoints and allows them to be tested dir
 
 ### 2. Create Task - POST /tasks
 
-A new task was successfully created using the POST endpoint.
+A new task was successfully created using the POST endpoint and stored in PostgreSQL.
 
 ![POST Create Task](screenshots/post-task.png)
 
 ### 3. Get All Tasks - GET /tasks
 
-The GET endpoint successfully returned all available tasks.
+The GET endpoint successfully returned all tasks stored in PostgreSQL.
 
 ![GET All Tasks](screenshots/get-tasks.png)
 
@@ -444,13 +735,13 @@ The API successfully returned a specific task using its ID.
 
 ### 5. Update Task - PUT /tasks/{id}
 
-The existing task was successfully updated using the PUT endpoint.
+The existing task was successfully updated in PostgreSQL using the PUT endpoint.
 
 ![PUT Update Task](screenshots/put-task.png)
 
 ### 6. Delete Task - DELETE /tasks/{id}
 
-The task was successfully deleted using the DELETE endpoint.
+The task was successfully deleted from PostgreSQL using the DELETE endpoint.
 
 ![DELETE Task](screenshots/delete-task.png)
 
@@ -465,30 +756,58 @@ An invalid task ID was tested and the API returned a 404 Not Found response.
 Invalid request data was tested and FastAPI returned a 422 validation error.
 
 ![Validation Error](screenshots/validation-error.png)
+
+### 9. PostgreSQL Database
+
+The `tasks` table was checked using PostgreSQL to verify that task data was stored in the database.
+
+![PostgreSQL Database](screenshots/database-table.png)
+
+### 10. Data Persistence After Restart
+
+The FastAPI application was stopped and restarted. Previously created tasks were still available after the restart, confirming that PostgreSQL provides persistent storage.
+
+![Persistence Test](screenshots/persistence-test.png)
+
 ---
 
-## Example Workflow
+## Data Persistence Verification
 
-Client
-   |
-   | HTTP Request
-   ↓
-FastAPI Application
-   |
-   ↓
-Pydantic Validation
-   |
-   ↓
-Task Manager
-   |
-   ↓
-In-Memory Task List
-   |
-   ↓
-JSON Response
-   |
-   ↓
-Client
+To verify that data is not lost after restarting the application:
+
+### Step 1
+
+Create a task using:
+
+POST /tasks
+
+### Step 2
+
+Verify that the task exists:
+
+GET /tasks
+
+### Step 3
+
+Stop the FastAPI application:
+
+Ctrl + C
+
+### Step 4
+
+Restart the application:
+
+uvicorn src.main:app --reload
+
+### Step 5
+
+Call:
+
+GET /tasks
+
+The previously created task should still be returned.
+
+This confirms that the application uses persistent PostgreSQL storage instead of temporary in-memory storage.
 
 ---
 
@@ -515,6 +834,11 @@ Example commits include:
 - Add README with run instructions
 - Add gitignore for generated files
 - Convert Task Manager into FastAPI REST API
+- Add PostgreSQL database connection
+- Add SQLAlchemy task model
+- Replace in-memory storage with PostgreSQL
+- Add PostgreSQL CRUD operations
+- Update README for PostgreSQL persistence
 
 ---
 
@@ -524,6 +848,10 @@ Example commits include:
 - FastAPI
 - Uvicorn
 - Pydantic
+- SQLAlchemy
+- Psycopg
+- PostgreSQL
+- python-dotenv
 - Git
 - GitHub
 

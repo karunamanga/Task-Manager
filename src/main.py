@@ -1,7 +1,9 @@
-from fastapi import FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status
+from sqlalchemy.orm import Session
 
-from src.task_manager import TaskManager
+from src.database import SessionLocal
 from src.schemas import TaskCreate, TaskResponse
+from src.task_manager import TaskManager
 
 
 app = FastAPI(
@@ -14,16 +16,26 @@ app = FastAPI(
 manager = TaskManager()
 
 
+def get_db():
+    db = SessionLocal()
+
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 @app.get(
     "/tasks",
     response_model=list[TaskResponse]
 )
-def get_tasks():
-    tasks = manager.list_tasks()
+def get_tasks(db: Session = Depends(get_db)):
+
+    tasks = manager.list_tasks(db)
 
     return [
         {
-            "id": task.task_id,
+            "id": task.id,
             "title": task.title,
             "completed": task.completed
         }
@@ -35,9 +47,12 @@ def get_tasks():
     "/tasks/{id}",
     response_model=TaskResponse
 )
-def get_task(id: int):
+def get_task(
+    id: int,
+    db: Session = Depends(get_db)
+):
 
-    task = manager.get_task(id)
+    task = manager.get_task(db, id)
 
     if task is None:
         raise HTTPException(
@@ -46,7 +61,7 @@ def get_task(id: int):
         )
 
     return {
-        "id": task.task_id,
+        "id": task.id,
         "title": task.title,
         "completed": task.completed
     }
@@ -57,14 +72,19 @@ def get_task(id: int):
     response_model=TaskResponse,
     status_code=status.HTTP_201_CREATED
 )
-def create_task(task_data: TaskCreate):
+def create_task(
+    task_data: TaskCreate,
+    db: Session = Depends(get_db)
+):
 
-    task = manager.add_task(task_data.title)
-
-    task.completed = task_data.completed
+    task = manager.add_task(
+        db,
+        task_data.title,
+        task_data.completed
+    )
 
     return {
-        "id": task.task_id,
+        "id": task.id,
         "title": task.title,
         "completed": task.completed
     }
@@ -74,9 +94,14 @@ def create_task(task_data: TaskCreate):
     "/tasks/{id}",
     response_model=TaskResponse
 )
-def update_task(id: int, task_data: TaskCreate):
+def update_task(
+    id: int,
+    task_data: TaskCreate,
+    db: Session = Depends(get_db)
+):
 
     task = manager.update_task(
+        db,
         id,
         task_data.title,
         task_data.completed
@@ -89,7 +114,7 @@ def update_task(id: int, task_data: TaskCreate):
         )
 
     return {
-        "id": task.task_id,
+        "id": task.id,
         "title": task.title,
         "completed": task.completed
     }
@@ -99,9 +124,12 @@ def update_task(id: int, task_data: TaskCreate):
     "/tasks/{id}",
     status_code=status.HTTP_204_NO_CONTENT
 )
-def delete_task(id: int):
+def delete_task(
+    id: int,
+    db: Session = Depends(get_db)
+):
 
-    deleted = manager.delete_task(id)
+    deleted = manager.delete_task(db, id)
 
     if not deleted:
         raise HTTPException(

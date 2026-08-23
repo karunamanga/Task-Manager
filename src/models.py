@@ -1,12 +1,11 @@
-class Task:
-    def __init__(self, task_id: int, title: str):
-        self.task_id = task_id
-        self.title = title
-        self.completed = False
+from sqlalchemy import Boolean, Column, Integer, String
 
-    def mark_completed(self) -> None:
-        self.completed = True
+from .database import Base
 
-    def display(self) -> None:
-        status = "Completed" if self.completed else "Pending"
-        print(f"{self.task_id}. {self.title} [{status}]")
+
+class Task(Base):
+    __tablename__ = "tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255), nullable=False)
+    completed = Column(Boolean, default=False, nullable=False)

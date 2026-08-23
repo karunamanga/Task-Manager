@@ -1,31 +1,48 @@
-from src.models import Task
+from sqlalchemy.orm import Session
+
+from .models import Task
 
 
 class TaskManager:
-    def __init__(self):
-        self.tasks: list[Task] = []
-        self.next_id = 1
 
-    def add_task(self, title: str) -> Task:
-        task = Task(self.next_id, title)
-        self.tasks.append(task)
-        self.next_id += 1
+    def add_task(
+        self,
+        db: Session,
+        title: str,
+        completed: bool
+    ) -> Task:
+
+        task = Task(
+            title=title,
+            completed=completed
+        )
+
+        db.add(task)
+        db.commit()
+        db.refresh(task)
 
         return task
 
-    def list_tasks(self) -> list[Task]:
-        return self.tasks
+    def list_tasks(self, db: Session) -> list[Task]:
+        return db.query(Task).all()
 
-    def get_task(self, task_id: int) -> Task | None:
-        for task in self.tasks:
-            if task.task_id == task_id:
-                return task
+    def get_task(
+        self,
+        db: Session,
+        task_id: int
+    ) -> Task | None:
 
-        return None
+        return db.query(Task).filter(Task.id == task_id).first()
 
-    def update_task(self, task_id: int, title: str, completed: bool) -> Task | None:
+    def update_task(
+        self,
+        db: Session,
+        task_id: int,
+        title: str,
+        completed: bool
+    ) -> Task | None:
 
-        task = self.get_task(task_id)
+        task = self.get_task(db, task_id)
 
         if task is None:
             return None
@@ -33,13 +50,23 @@ class TaskManager:
         task.title = title
         task.completed = completed
 
+        db.commit()
+        db.refresh(task)
+
         return task
 
-    def delete_task(self, task_id: int) -> bool:
-        task = self.get_task(task_id)
+    def delete_task(
+        self,
+        db: Session,
+        task_id: int
+    ) -> bool:
+
+        task = self.get_task(db, task_id)
 
         if task is None:
             return False
 
-        self.tasks.remove(task)
+        db.delete(task)
+        db.commit()
+
         return True
