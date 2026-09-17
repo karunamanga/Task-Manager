@@ -5,6 +5,7 @@ from ..database import get_db
 from ..schemas.task import TaskCreate, TaskResponse
 from ..services.task_service import TaskService
 
+from ..auth import get_current_user_id
 
 router = APIRouter()
 
@@ -16,7 +17,8 @@ service = TaskService()
     response_model=list[TaskResponse]
 )
 def get_tasks(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
 ):
 
     tasks = service.get_tasks(db)

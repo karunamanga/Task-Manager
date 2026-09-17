@@ -1,184 +1,186 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
 import TaskForm from "./components/TaskForm";
 import TaskList from "./components/TaskList";
+import Login from "./components/Login";
+
+import {
+  getTasks,
+  createTask,
+  updateTask,
+  deleteTask,
+} from "./api/tasks";
+
 
 function App() {
-  const [tasks, setTasks] = useState([
-    {
-      id: 1,
-      title: "Learn React",
-      completed: false,
-    },
-    {
-      id: 2,
-      title: "Practice JSX",
-      completed: false,
-    },
-    {
-      id: 3,
-      title: "Learn Props",
-      completed: true,
-    },
-  ]);
+  const [tasks, setTasks] = useState([]);
 
-  const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
 
-  function handleComplete(taskId) {
-    setTasks((previousTasks) =>
-      previousTasks.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              completed: !task.completed,
-            }
-          : task
+  const [error, setError] = useState("");
+
+  const [isAuthenticated, setIsAuthenticated] =
+    useState(
+      Boolean(
+        localStorage.getItem("access_token")
       )
     );
+
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
+    async function loadTasks() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const data = await getTasks();
+
+        setTasks(data);
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadTasks();
+  }, [isAuthenticated]);
+
+
+  function handleLogin() {
+    setIsAuthenticated(true);
   }
 
-  function handleDelete(taskId) {
-    setTasks((previousTasks) =>
-      previousTasks.filter((task) => task.id !== taskId)
+
+  function handleLogout() {
+    localStorage.removeItem("access_token");
+
+    setIsAuthenticated(false);
+    setTasks([]);
+  }
+
+
+  async function handleComplete(taskId) {
+    const task = tasks.find(
+      (task) => task.id === taskId
+    );
+
+    if (!task) {
+      return;
+    }
+
+    try {
+      setError("");
+
+      const updatedTask = await updateTask(
+        task.id,
+        task.title,
+        !task.completed
+      );
+
+      setTasks((previousTasks) =>
+        previousTasks.map((task) =>
+          task.id === updatedTask.id
+            ? updatedTask
+            : task
+        )
+      );
+    } catch (error) {
+      setError(error.message);
+    }
+  }
+
+
+  async function handleDelete(taskId) {
+    try {
+      setError("");
+
+      await deleteTask(taskId);
+
+      setTasks((previousTasks) =>
+        previousTasks.filter(
+          (task) => task.id !== taskId
+        )
+      );
+    } catch (error) {
+      setError(error.message);
+    }
+  }
+
+
+  async function handleAdd(title) {
+    try {
+      setError("");
+
+      const newTask = await createTask(title);
+
+      setTasks((previousTasks) => [
+        ...previousTasks,
+        newTask,
+      ]);
+    } catch (error) {
+      setError(error.message);
+    }
+  }
+
+
+  if (!isAuthenticated) {
+    return (
+      <Login onLogin={handleLogin} />
     );
   }
 
-  const completedCount = tasks.filter(
-    (task) => task.completed
-  ).length;
-
-  const pendingCount = tasks.filter(
-    (task) => !task.completed
-  ).length;
-
-  const filteredTasks = tasks.filter((task) => {
-    if (filter === "completed") {
-      return task.completed;
-    }
-
-    if (filter === "pending") {
-      return !task.completed;
-    }
-
-    return true;
-  });
 
   return (
     <div className="app">
-      {/* Header */}
-      <header className="header">
-        <div className="header-content">
-          <div className="brand">
-            <div className="brand-icon">✓</div>
 
-            <div>
-              <h1>Task Manager</h1>
-              <p>Organize your tasks and get things done</p>
-            </div>
-          </div>
+      <header className="app-header">
+        <h1>Task Manager</h1>
 
-          <div className="task-count">
-            ✓ {tasks.length} tasks
-          </div>
-        </div>
+        <p>
+          Manage your tasks efficiently
+        </p>
+
+        <button onClick={handleLogout}>
+          Logout
+        </button>
       </header>
 
-      {/* Main Content */}
-      <main className="main-container">
 
-        {/* Add Task Section */}
-        <section className="add-task-section">
-          <div className="add-task-icon">✎</div>
+      <main className="app-main">
 
-          <div className="add-task-content">
-            <h2>Add a new task</h2>
+        <TaskForm onAdd={handleAdd} />
 
-            <TaskForm setTasks={setTasks} />
+
+        {error && (
+          <div className="error-message">
+            {error}
           </div>
-        </section>
+        )}
 
-        {/* Statistics + Filters */}
-        <section className="dashboard-controls">
 
-          <div className="statistics">
-
-            <div className="stat-card total">
-              <div className="stat-icon">☷</div>
-
-              <div>
-                <strong>{tasks.length}</strong>
-                <span>Total</span>
-              </div>
-            </div>
-
-            <div className="stat-card completed">
-              <div className="stat-icon">✓</div>
-
-              <div>
-                <strong>{completedCount}</strong>
-                <span>Completed</span>
-              </div>
-            </div>
-
-            <div className="stat-card pending">
-              <div className="stat-icon">◷</div>
-
-              <div>
-                <strong>{pendingCount}</strong>
-                <span>Pending</span>
-              </div>
-            </div>
-
+        {loading ? (
+          <div className="status-message">
+            Loading tasks...
           </div>
-
-          {/* Filters */}
-          <div className="filters">
-
-            <button
-              className={
-                filter === "all" ? "filter active" : "filter"
-              }
-              onClick={() => setFilter("all")}
-            >
-              All
-            </button>
-
-            <button
-              className={
-                filter === "pending"
-                  ? "filter active"
-                  : "filter"
-              }
-              onClick={() => setFilter("pending")}
-            >
-              Pending
-            </button>
-
-            <button
-              className={
-                filter === "completed"
-                  ? "filter active"
-                  : "filter"
-              }
-              onClick={() => setFilter("completed")}
-            >
-              Completed
-            </button>
-
-          </div>
-        </section>
-
-        {/* Task List */}
-        <TaskList
-          tasks={filteredTasks}
-          onComplete={handleComplete}
-          onDelete={handleDelete}
-        />
-
-        
+        ) : (
+          <TaskList
+            tasks={tasks}
+            onComplete={handleComplete}
+            onDelete={handleDelete}
+          />
+        )}
 
       </main>
+
     </div>
   );
 }
+
 
 export default App;

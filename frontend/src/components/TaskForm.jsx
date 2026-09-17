@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-function TaskForm({ setTasks }) {
+function TaskForm({ onAdd }) {
   const [title, setTitle] = useState("");
 
   function handleSubmit(event) {
@@ -10,16 +10,7 @@ function TaskForm({ setTasks }) {
       return;
     }
 
-    const newTask = {
-      id: Date.now(),
-      title: title.trim(),
-      completed: false,
-    };
-
-    setTasks((previousTasks) => [
-      ...previousTasks,
-      newTask,
-    ]);
+    onAdd(title.trim());
 
     setTitle("");
   }
@@ -44,3 +35,4 @@ function TaskForm({ setTasks }) {
 }
 
 export default TaskForm;
+
