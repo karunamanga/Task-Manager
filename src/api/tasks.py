@@ -1,130 +1,130 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from ..auth import get_current_user
 from ..database import get_db
+from ..models.user import User
 from ..schemas.task import TaskCreate, TaskResponse
 from ..services.task_service import TaskService
 
-from ..auth import get_current_user_id
 
 router = APIRouter()
-
 service = TaskService()
 
 
 @router.get(
     "/tasks",
-    response_model=list[TaskResponse]
+    response_model=list[TaskResponse],
 )
 def get_tasks(
     db: Session = Depends(get_db),
-    user_id: int = Depends(get_current_user_id)
+    current_user: User = Depends(get_current_user),
 ):
+    return service.get_tasks(
+        db,
+        current_user.id,
+        current_user.role == "ADMIN"
 
-    tasks = service.get_tasks(db)
-
-    return [
-        {
-            "id": task.id,
-            "title": task.title,
-            "completed": task.completed
-        }
-        for task in tasks
-    ]
+    )
 
 
 @router.get(
-    "/tasks/{id}",
-    response_model=TaskResponse
+    "/tasks/{task_id}",
+    response_model=TaskResponse,
 )
 def get_task(
-    id: int,
-    db: Session = Depends(get_db)
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-
-    task = service.get_task(db, id)
+    task = service.get_task(db, task_id)
 
     if task is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task with id {id} not found"
+            detail=f"Task with id {task_id} not found",
         )
 
-    return {
-        "id": task.id,
-        "title": task.title,
-        "completed": task.completed
-    }
+    if current_user.role != "ADMIN" and task.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not allowed to access this task",
+        )
+
+    return task
 
 
 @router.post(
     "/tasks",
     response_model=TaskResponse,
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
 )
 def create_task(
     task_data: TaskCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-
-    task = service.create_task(
+    return service.create_task(
         db,
         task_data.title,
-        task_data.completed
+        task_data.completed,
+        current_user.id
     )
-
-    return {
-        "id": task.id,
-        "title": task.title,
-        "completed": task.completed
-    }
 
 
 @router.put(
-    "/tasks/{id}",
-    response_model=TaskResponse
+    "/tasks/{task_id}",
+    response_model=TaskResponse,
 )
 def update_task(
-    id: int,
+    task_id: int,
     task_data: TaskCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-
-    task = service.update_task(
-        db,
-        id,
-        task_data.title,
-        task_data.completed
-    )
+    task = service.get_task(db, task_id)
 
     if task is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task with id {id} not found"
+            detail=f"Task with id {task_id} not found",
         )
 
-    return {
-        "id": task.id,
-        "title": task.title,
-        "completed": task.completed
-    }
+    if current_user.role != "ADMIN" and task.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not allowed to update this task",
+        )
+
+    return service.update_task(
+        db,
+        task_id,
+        task_data.title,
+        task_data.completed,
+    )
 
 
 @router.delete(
-    "/tasks/{id}",
-    status_code=status.HTTP_204_NO_CONTENT
+    "/tasks/{task_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 def delete_task(
-    id: int,
-    db: Session = Depends(get_db)
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
+    if current_user.role != "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can delete tasks",
+        )
 
-    deleted = service.delete_task(db, id)
+    deleted = service.delete_task(db, task_id)
 
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task with id {id} not found"
+            detail=f"Task with id {task_id} not found",
         )
 
-    return
+    return None

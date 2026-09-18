@@ -20,11 +20,13 @@ class UserRepository:
     def create_user(
         self,
         db: Session,
+        name: str,
         email: str,
         password_hash: str
     ) -> User:
 
         user = User(
+            name=name,
             email=email,
             password_hash=password_hash
         )

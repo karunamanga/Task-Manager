@@ -29,7 +29,6 @@ function App() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      setLoading(false);
       return;
     }
 

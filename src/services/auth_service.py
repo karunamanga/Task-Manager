@@ -13,6 +13,7 @@ class AuthService:
     def register_user(
         self,
         db: Session,
+        name: str,
         email: str,
         password: str
     ):
@@ -28,6 +29,7 @@ class AuthService:
 
         return self.repository.create_user(
             db,
+            name,
             email,
             hashed_password
         )

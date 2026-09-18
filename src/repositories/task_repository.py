@@ -9,12 +9,14 @@ class TaskRepository:
         self,
         db: Session,
         title: str,
-        completed: bool
+        completed: bool,
+        owner_id: int
     ) -> Task:
 
         task = Task(
             title=title,
-            completed=completed
+            completed=completed,
+            owner_id=owner_id
         )
 
         db.add(task)
@@ -23,8 +25,19 @@ class TaskRepository:
 
         return task
 
-    def get_tasks(self, db: Session) -> list[Task]:
-        return db.query(Task).all()
+    def get_tasks(
+        self,
+        db: Session,
+        user_id: int,
+        is_admin: bool
+    ) -> list[Task]:
+
+        query = db.query(Task)
+
+        if not is_admin:
+            query = query.filter(Task.owner_id == user_id)
+
+        return query.all()
 
     def get_task(
         self,
@@ -32,7 +45,11 @@ class TaskRepository:
         task_id: int
     ) -> Task | None:
 
-        return db.query(Task).filter(Task.id == task_id).first()
+        return (
+            db.query(Task)
+            .filter(Task.id == task_id)
+            .first()
+        )
 
     def update_task(
         self,
