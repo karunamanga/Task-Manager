@@ -1,5 +1,4 @@
 from sqlalchemy.orm import Session
-
 from ..models.task import Task
 from ..repositories.task_repository import TaskRepository
 
@@ -16,7 +15,6 @@ class TaskService:
         completed: bool,
         owner_id: int
     ) -> Task:
-
         return self.repository.create_task(
             db,
             title,
@@ -30,7 +28,6 @@ class TaskService:
         user_id: int,
         is_admin: bool
     ) -> list[Task]:
-
         return self.repository.get_tasks(
             db,
             user_id,
@@ -51,14 +48,14 @@ class TaskService:
     def update_task(
         self,
         db: Session,
-        task_id: int,
+        task: Task,
         title: str,
         completed: bool
     ) -> Task | None:
 
         return self.repository.update_task(
             db,
-            task_id,
+            task,
             title,
             completed
         )

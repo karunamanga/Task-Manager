@@ -4,10 +4,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from .api.auth import router as auth_router
 from .api.tasks import router as task_router
 
+
 app = FastAPI(
     title="Task Manager API",
     description="REST API for managing tasks",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 

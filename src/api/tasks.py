@@ -98,7 +98,7 @@ def update_task(
 
     return service.update_task(
         db,
-        task_id,
+        task,
         task_data.title,
         task_data.completed,
     )

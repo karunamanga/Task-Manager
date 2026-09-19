@@ -22,7 +22,7 @@ if not JWT_SECRET_KEY:
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
 ACCESS_TOKEN_EXPIRE_MINUTES = int(
-    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "10")
+    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
 )
 
 REFRESH_TOKEN_EXPIRE_DAYS = int(
@@ -137,6 +137,7 @@ def get_user_id_from_refresh_token(token: str) -> int:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
         )
+
 
 def get_current_user(
     user_id: int = Depends(get_current_user_id),

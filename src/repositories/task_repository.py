@@ -54,16 +54,10 @@ class TaskRepository:
     def update_task(
         self,
         db: Session,
-        task_id: int,
+        task: Task,
         title: str,
-        completed: bool
-    ) -> Task | None:
-
-        task = self.get_task(db, task_id)
-
-        if task is None:
-            return None
-
+        completed: bool,
+    ) -> Task:
         task.title = title
         task.completed = completed
 
@@ -71,6 +65,8 @@ class TaskRepository:
         db.refresh(task)
 
         return task
+
+
 
     def delete_task(
         self,

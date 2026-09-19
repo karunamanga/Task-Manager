@@ -1,6 +1,7 @@
-from sqlalchemy.orm import Session
 from pwdlib import PasswordHash
+from sqlalchemy.orm import Session
 
+from ..models.user import User
 from ..repositories.user_repository import UserRepository
 
 
@@ -15,11 +16,11 @@ class AuthService:
         db: Session,
         name: str,
         email: str,
-        password: str
-    ):
+        password: str,
+    ) -> User | None:
         existing_user = self.repository.get_user_by_email(
             db,
-            email
+            email,
         )
 
         if existing_user:
@@ -31,18 +32,18 @@ class AuthService:
             db,
             name,
             email,
-            hashed_password
+            hashed_password,
         )
 
     def login_user(
         self,
         db: Session,
         email: str,
-        password: str
-    ):
+        password: str,
+    ) -> User | None:
         user = self.repository.get_user_by_email(
             db,
-            email
+            email,
         )
 
         if user is None:
@@ -50,7 +51,7 @@ class AuthService:
 
         is_valid = self.password_hash.verify(
             password,
-            user.password_hash
+            user.password_hash,
         )
 
         if not is_valid:
