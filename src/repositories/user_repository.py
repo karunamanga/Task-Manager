@@ -22,13 +22,14 @@ class UserRepository:
         db: Session,
         name: str,
         email: str,
-        password_hash: str
+        password_hash: str,
+        role_id: int,
     ) -> User:
-
         user = User(
             name=name,
             email=email,
-            password_hash=password_hash
+            password_hash=password_hash,
+            role_id=role_id,
         )
 
         db.add(user)

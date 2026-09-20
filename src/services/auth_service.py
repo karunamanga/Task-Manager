@@ -2,6 +2,7 @@ from pwdlib import PasswordHash
 from sqlalchemy.orm import Session
 
 from ..models.user import User
+from ..models.role import Role
 from ..repositories.user_repository import UserRepository
 
 
@@ -26,6 +27,15 @@ class AuthService:
         if existing_user:
             return None
 
+        member_role = (
+            db.query(Role)
+            .filter(Role.name == "MEMBER")
+            .first()
+        )
+
+        if member_role is None:
+            raise ValueError("Default MEMBER role not found")
+
         hashed_password = self.password_hash.hash(password)
 
         return self.repository.create_user(
@@ -33,6 +43,7 @@ class AuthService:
             name,
             email,
             hashed_password,
+            member_role.id,
         )
 
     def login_user(

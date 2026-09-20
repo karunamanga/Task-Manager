@@ -1,3 +1,4 @@
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from ..models.task import Task
@@ -10,13 +11,13 @@ class TaskRepository:
         db: Session,
         title: str,
         completed: bool,
-        owner_id: int
+        owner_id: int,
     ) -> Task:
 
         task = Task(
             title=title,
             completed=completed,
-            owner_id=owner_id
+            owner_id=owner_id,
         )
 
         db.add(task)
@@ -29,20 +30,25 @@ class TaskRepository:
         self,
         db: Session,
         user_id: int,
-        is_admin: bool
+        can_read_all: bool,
     ) -> list[Task]:
 
         query = db.query(Task)
 
-        if not is_admin:
-            query = query.filter(Task.owner_id == user_id)
+        if not can_read_all:
+            query = query.filter(
+                or_(
+                    Task.owner_id == user_id,
+                    Task.assigned_to_id == user_id,
+                )
+            )
 
         return query.all()
 
     def get_task(
         self,
         db: Session,
-        task_id: int
+        task_id: int,
     ) -> Task | None:
 
         return (
@@ -58,6 +64,7 @@ class TaskRepository:
         title: str,
         completed: bool,
     ) -> Task:
+
         task.title = title
         task.completed = completed
 
@@ -66,12 +73,24 @@ class TaskRepository:
 
         return task
 
+    def assign_task(
+        self,
+        db: Session,
+        task: Task,
+        assigned_to_id: int,
+    ) -> Task:
 
+        task.assigned_to_id = assigned_to_id
+
+        db.commit()
+        db.refresh(task)
+
+        return task
 
     def delete_task(
         self,
         db: Session,
-        task_id: int
+        task_id: int,
     ) -> bool:
 
         task = self.get_task(db, task_id)
