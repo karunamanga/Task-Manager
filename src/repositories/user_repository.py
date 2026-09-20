@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from ..models.user import User
+from ..models.user_role import UserRole
 
 
 class UserRepository:
@@ -29,10 +30,16 @@ class UserRepository:
             name=name,
             email=email,
             password_hash=password_hash,
-            role_id=role_id,
         )
 
         db.add(user)
+        db.flush()
+
+        user_role = UserRole(
+            user_id=user.id,
+            role_id=role_id,
+        )
+        db.add(user_role)
         db.commit()
         db.refresh(user)
 

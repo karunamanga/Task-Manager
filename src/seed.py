@@ -28,6 +28,7 @@ def init_db(db: Session | None = None) -> None:
             ("task", "create"),
             ("task", "update"),
             ("task", "update_all"),
+            ("task", "assign"),
             ("task", "delete"),
             ("task", "delete_all"),
         ]
